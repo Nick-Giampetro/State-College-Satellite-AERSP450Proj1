@@ -14,3 +14,6 @@ a = (mu*(T/(2*pi))^2)^(1/3)
 
 rp = a*(1-e)
 
+R(1) = rp/sqrt(1+tan(longitude)^2+(tan(latitude)*(1+tan(longitude)^2)^2))
+R(2) = R(1)/tan(longitude) 
+R(3) = tan(latitude)*(R(1)^2+R(2)^2)

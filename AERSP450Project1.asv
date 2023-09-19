@@ -1,8 +1,18 @@
+
+
+mu = 3.986*10^5 ;    % mu of earth
+
 longitude = -78 ;    % in degrees east negative for west
-latitude = 41 ;       % in degrees north negative for south
+latitude = 41 ;      % in degrees north negative for south
 
-T = 8 ;      % orbital period in hours
-T = T*3600 ;  % convert T to seconds
+T = 8 ;         % orbital period in hours
+T = T*3600 ;    % convert T to seconds
 
-a = 
+e = 0.5 ;       % e
 
+a = (mu*(T/(2*pi))^2)^(1/3)
+
+rp = a*(1-e)
+
+R[1] = rp/sqrt(1+tan(longitude)^2+(tan(latitude)*(1+tan(longitude)^2)^2))
+R[2] = R[1]/tan(longitude) 
