@@ -14,11 +14,9 @@ a = (mu*(T/(2*pi))^2)^(1/3)
 
 rp = a*(1-e)
 
-C1 = tand(longitude) 
-C2 = tand(latitude)*sqrt(1+C1^2) 
+C1 = tand(longitude) ;
+C2 = tand(latitude)*sqrt(1+C1^2) ;
 
 R(1) = rp/sqrt(1+C1^2+C2^2);
-R(2) = R(1)/tand(longitude) ;
+R(2) = R(1)*tand(longitude) ;
 R(3) = tand(latitude)*sqrt((R(1)^2+R(2)^2))
-
-dist = norm(R)
