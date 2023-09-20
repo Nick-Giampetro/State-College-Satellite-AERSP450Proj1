@@ -1,4 +1,6 @@
-
+clc ;
+clear ;
+close all ;
 
 % ---- INPUT VALUES BELOW ---- %
 
@@ -15,18 +17,29 @@ latitude = 41 ;      % in degrees north negative for south
 lonAN = 60 ;         % cap-omega in degrees 
 mu = 3.986*10^5 ;    % mu of earth
 
-
+% calculations
+thetaPeriapsis = 0 ;     % angle theta at Periapsis
 
 T = T*3600 ;    % convert T to seconds
 
+a = (mu*(T/(2*pi))^2)^(1/3) ;   % finding semi-major axis from desired period
+p = a*(1-e^2) ;                  % finding  semi-latus rectum from semi-major axis
 
-a = (mu*(T/(2*pi))^2)^(1/3) ;
-
-rp = a*(1-e) ;
+rp = p/(1+e*cos(thetaPeriapsis)) ;                  % radius of periapsis for designated conditions
 
 C1 = tand(longitude) ;
 C2 = tand(latitude)*sqrt(1+C1^2) ;
 
-R(1) = rp/sqrt(1+C1^2+C2^2) ;
-R(2) = R(1)*tand(longitude)  ;
-R(3) = tand(latitude)*sqrt((R(1)^2+R(2)^2)) ;
+R_ECI(1) = rp/sqrt(1+C1^2+C2^2) ;
+R_ECI(2) = R_ECI(1)*tand(longitude)  ;
+R_ECI(3) = tand(latitude)*sqrt((R_ECI(1)^2+R_ECI(2)^2)) 
+
+V_Perifocal(1) = sqrt(mu/p)*-sin(thetaPeriapsis) ;
+V_Perifocal(2) = sqrt(mu/p)*(e+cos(thetaPeriapsis)) ;
+V_Perifocal(3) = 0 
+
+R_Perifocal(1) = rp*cos(thetaPeriapsis) ;
+R_Perifocal(2) = rp*sin(thetaPeriapsis) ;
+R_Perifocal(3) = 0 
+
+h = cross(R_Perifocal,V_Perifocal)
