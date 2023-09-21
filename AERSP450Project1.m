@@ -4,8 +4,8 @@ close all ;
 
 % ---- INPUT VALUES BELOW ---- %
 
-e = 0.5 ;       % eccentricity
-T = 8 ;         % orbital period in hours
+e = 0.5 ;        % eccentricity
+T = 80 ;         % orbital period in hours
 
 % ---- INPUT VALUES ABOVE ---- %
 
@@ -22,7 +22,7 @@ thetaPeriapsis = 0 ;     % angle theta at Periapsis
 
 T = T*3600 ;    % convert T to seconds
 
-a = (mu*(T/(2*pi))^2)^(1/3) ;   % finding semi-major axis from desired period
+a = (mu*(T/(2*pi))^2)^(1/3) ;    % finding semi-major axis from desired period
 p = a*(1-e^2) ;                  % finding  semi-latus rectum from semi-major axis
 
 rp = p/(1+e*cos(thetaPeriapsis)) ;                  % radius of periapsis for designated conditions
@@ -46,7 +46,7 @@ h = cross(R_Perifocal,V_Perifocal) ;
 
 r = R_ECI
 
-I = -1*atand(-r(3)/(r(1)*sind(lonAN)-r(2)*cos(lonAN)))
+I =  atand(-r(3)/(r(1)*sind(lonAN)-r(2)*cos(lonAN)))
 
 AoP = atand( (1/(r(1)+r(2)*tand(lonAN))) * ((r(3)*sind(I))/cosd(lonAN) + r(2)*cosd(I) - r(1)*cosd(I)*tand(lonAN)))
 
