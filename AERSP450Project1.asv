@@ -5,7 +5,7 @@ close all ;
 % ---- INPUT VALUES BELOW ---- %
 
 e = 0.5 ;        % eccentricity
-T = 80 ;         % orbital period in hours
+T = 8 ;         % orbital period in hours
 
 % ---- INPUT VALUES ABOVE ---- %
 
