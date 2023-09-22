@@ -38,9 +38,9 @@ R_ECI(3) = tand(latitude)*sqrt((R_ECI(1)^2+R_ECI(2)^2))
 % V_Perifocal(2) = sqrt(mu/p)*(e+cosd(thetaPeriapsis)) ;
 % V_Perifocal(3) = 0 ;
 % 
-% R_Perifocal(1) = rp*cosd(thetaPeriapsis) ;
-% R_Perifocal(2) = rp*sind(thetaPeriapsis) ;
-% R_Perifocal(3) = 0 
+ R_Perifocal(1) = rp*cosd(thetaPeriapsis) ;
+ R_Perifocal(2) = rp*sind(thetaPeriapsis) ;
+ R_Perifocal(3) = 0 
 % 
 % h = cross(R_Perifocal,V_Perifocal) ;
 % 
