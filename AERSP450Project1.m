@@ -30,9 +30,9 @@ rp = p/(1+e*cos(thetaPeriapsis)) ;                  % radius of periapsis for de
 C1 = tand(longitude) ;
 C2 = tand(latitude)*sqrt(1+C1^2) ;
 
-R_ECI(1) = rp/sqrt(1+C1^2+C2^2) ;
-R_ECI(2) = R_ECI(1)*tand(longitude)  ;
-R_ECI(3) = tand(latitude)*sqrt((R_ECI(1)^2+R_ECI(2)^2)) 
+R_ECEF(1) = rp/sqrt(1+C1^2+C2^2) ;
+R_ECEF(2) = R_ECEF(1)*tand(longitude)  ;
+R_ECEF(3) = tand(latitude)*sqrt((R_ECEF(1)^2+R_ECEF(2)^2)) 
 
 % V_Perifocal(1) = sqrt(mu/p)*-sind(thetaPeriapsis) ;
 % V_Perifocal(2) = sqrt(mu/p)*(e+cosd(thetaPeriapsis)) ;
