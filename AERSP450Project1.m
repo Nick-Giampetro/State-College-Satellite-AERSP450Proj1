@@ -50,7 +50,9 @@ R_ECEF(3) = tand(latitude)*sqrt((R_ECEF(1)^2+R_ECEF(2)^2))
 % 
 % AoP = atand( (1/(r(1)+r(2)*tand(lonAN))) * ((r(3)*sind(I))/cosd(lonAN) + r(2)*cosd(I) - r(1)*cosd(I)*tand(lonAN)))
 % 
-% cEP = dcm3axis(AoP)*dcm1axis(i)*dcm3axis(lonAN)
+cEP = dcm3axis(90)*dcm1axis(latitude)*dcm3axis(lonAN) ;
+cPE = cEP';
+R_ECI = cPE * R_Perifocal'
 
 % creates a dcm for an angle about axis 1
 function r = dcm1axis(ang)
