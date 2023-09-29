@@ -4,7 +4,7 @@ close all ;
 
 % ---- INPUT VALUES BELOW ---- %
 
-e = 0.1;        % eccentricity
+e = 0.2;        % eccentricity
 T = 2 ;         % orbital period in hours
 I = 55;         % must be greater than the latitude value below (line 15)
 
@@ -46,10 +46,10 @@ R_Perifocal(3) = 0
 w = asind(R_ECEF(3)/(R_Perifocal(1)*sind(I)))
 
 C1 = cosd(lonAN)/R_ECEF(2) + sind(lonAN)/R_ECEF(1) ;
-C2 = (tand(lonAN)*sind(w))/R_ECEF(2) - (sind(lonAN)*cosd(I))/(R_ECEF(1)*tand(lonAN)) ;
+C2 = tand(lonAN)*cosd(lonAN)/R_ECEF(2) - sind(lonAN)/(R_ECEF(1)*tand(lonAN)) ;
 C3 = R_ECEF(1)/R_ECEF(2) + R_ECEF(2)/R_ECEF(1) ;
 
-GMST = (R_Perifocal(1) * (cosd(w)*C1 - cosd(I)*C2))/C3 
+GMST = acosd((R_Perifocal(1) * (cosd(w)*C1 - cosd(I)*sind(w)*C2))/C3)
 
 
 % cEP = dcm3axis(w)*dcm1axis(I)*dcm3axis(lonAN) ;
