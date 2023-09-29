@@ -59,24 +59,30 @@ V_ECI = cPE * V_Perifocal' ;
 
 init = [ R_ECI(1) R_ECI(2) R_ECI(3) V_ECI(1) V_ECI(2) V_ECI(3)] ;
 totalT = T*24 ;
-t = linspace(1,totalT,10000) ;
+t = linspace(1,totalT,100000) ;
 options = odeset('reltol',1e-12,'abstol',1e-12);
 
 [t,R_ODE45] = ode45( @(t,R_ODE45) TwoBP(t,R_ODE45,mu) , t , init, options) ;
 
+grdTrck = groundTrack(t,R_ODE45,GMST,mu) ;
+
 f = figure ;
 subplot(1,1,1)
 plot(R_ODE45(:,1),R_ODE45(:,2),'r')
-exportgraphics(f,['XvsY' '.jpg'])
+exportgraphics(f,['X vs Y' '.jpg'])
 f = figure ;
 subplot(1,1,1)
 plot(R_ODE45(:,2),R_ODE45(:,3),'g')
-exportgraphics(f,['YvsZ' '.jpg'])
+exportgraphics(f,['Y vs Z' '.jpg'])
 f = figure ;
 subplot(1,1,1)
 plot(R_ODE45(:,1),R_ODE45(:,3),'b')
-exportgraphics(f,['XvsZ' '.jpg'])
+exportgraphics(f,['X vs Z' '.jpg'])
 
+f = figure ;
+subplot(1,1,1)
+plot(grdTrck(:,1),grdTrck(:,2),'b')
+exportgraphics(f,['long vs lat' '.jpg'])
 
 
 function dx = TwoBP(t,r,mu)
@@ -97,18 +103,40 @@ function dx = TwoBP(t,r,mu)
 end
 
 
-function gt = groundTrack(t,r,v,GMST_0)
+function gt = groundTrack(t,r,GMST,mu)
     
-    eRot = 360/24/3600 ;
+    for idx = 1:3
+        r1(:,idx) = r(:,idx) ;
+        v1(:,idx) = r(:,idx+3) ;
+    end
 
-    GMST = GMST_0 + t * eRot ;
+    %e_omega = 360/24/3600 ;
+    e_omega=0;
+
+    [r_ecef,v_ecef] = ECI2ECEF(r1,v1,e_omega,t,GMST,mu) ;
     
+    gt = zeros(length(t),2) ;
+    crt = 0 ;
+
+    for idx = 1:length(t)
+        gt(idx,1) = crt + atand(r_ecef(idx,2)/r_ecef(idx,1)) ;
+        gt(idx,2) = atand(r_ecef(idx,3)/sqrt(r_ecef(idx,1)^2+r_ecef(idx,2)^2)) ;
+        if (idx > 1) && (gt(idx,1)-gt(idx-1,1) > 90)
+            crt = 180 ;   
+        end
+    end
 end
 
-function [r_ecef,v_ecef] = ECI2ECEF(r_eci,v_eci,omega, t, GMST, mu)
+function [r_ecef,v_ecef] = ECI2ECEF(r_eci, v_eci, omega, t, GMST, mu)
+    r_ecef = zeros(length(t),3) ;
+    v_ecef = zeros(length(t),3) ;
 
-    
-
+    for idx = 1 : length(t)
+        gamma = GMST + t(idx) * omega ;
+        cECEF = dcm1axis(gamma) ;
+        r_ecef(idx,:) = cECEF * r_eci(idx,:)' ;
+        v_ecef(idx,:) = cECEF * v_eci(idx,:)' ;
+    end
 end
 
 
