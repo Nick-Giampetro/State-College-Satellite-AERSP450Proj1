@@ -59,7 +59,7 @@ V_ECI = cPE * V_Perifocal' ;
 
 init = [ R_ECI(1) R_ECI(2) R_ECI(3) V_ECI(1) V_ECI(2) V_ECI(3)] ;
 totalT = T*24 ;
-t = linspace(1,totalT,100000) ;
+t = linspace(1,totalT,10000) ;
 options = odeset('reltol',1e-12,'abstol',1e-12);
 
 [t,R_ODE45] = ode45( @(t,R_ODE45) TwoBP(t,R_ODE45,mu) , t , init, options) ;
@@ -104,7 +104,7 @@ end
 
 
 function gt = groundTrack(t,r,GMST,mu)
-    
+
     for idx = 1:3
         r1(:,idx) = r(:,idx) ;
         v1(:,idx) = r(:,idx+3) ;
@@ -116,14 +116,28 @@ function gt = groundTrack(t,r,GMST,mu)
     [r_ecef,v_ecef] = ECI2ECEF(r1,v1,e_omega,t,GMST,mu) ;
     
     gt = zeros(length(t),2) ;
-    crt = 0 ;
+    phase = 0 ;
 
     for idx = 1:length(t)
-        gt(idx,1) = crt + atand(r_ecef(idx,2)/r_ecef(idx,1)) ;
-        gt(idx,2) = atand(r_ecef(idx,3)/sqrt(r_ecef(idx,1)^2+r_ecef(idx,2)^2)) ;
-        if (idx > 1) && (gt(idx,1)-gt(idx-1,1) > 90)
-            crt = 180 ;   
+        if mod(phase,3) == 0
+            gt(idx,1) = atand(r_ecef(idx,2)/r_ecef(idx,1)) ;
+            gt(idx,2) = atand(r_ecef(idx,3)/sqrt(r_ecef(idx,1)^2+r_ecef(idx,2)^2)) ;
+        elseif  mod(phase,3) == 1
+            gt(idx,1) = -180 + atand(r_ecef(idx,2)/r_ecef(idx,1)) ;
+            gt(idx,2) = atand(r_ecef(idx,3)/sqrt(r_ecef(idx,1)^2+r_ecef(idx,2)^2)) ;
+        elseif  mod(phase,3) == 2
+            gt(idx,1) = 180 + atand(r_ecef(idx,2)/r_ecef(idx,1)) ;
+            gt(idx,2) = atand(r_ecef(idx,3)/sqrt(r_ecef(idx,1)^2+r_ecef(idx,2)^2)) ;
         end
+           
+        if (idx > 1) && ((gt(idx,1)-gt(idx-1,1) > 90 && (gt(idx,1)-gt(idx-1,1) < 350)))
+           phase = phase + 1 ; 
+        elseif (idx > 1) && (gt(idx,1) < -180)
+           phase = phase + 1 ;
+           gt(idx,1) = gt(idx,1) * -1 ;
+        end
+        
+
     end
 end
 
