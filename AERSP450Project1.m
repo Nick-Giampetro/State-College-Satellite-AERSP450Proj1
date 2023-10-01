@@ -59,22 +59,27 @@ V_ECI = cPE * V_Perifocal' ;
 
 init = [ R_ECI(1) R_ECI(2) R_ECI(3) V_ECI(1) V_ECI(2) V_ECI(3)] ;
 totalT = T*24 ;
-t = linspace(1,totalT,10000) ;
+t = linspace(1,totalT,25000) ;
 options = odeset('reltol',1e-12,'abstol',1e-12);
 [t,R_ODE45] = ode45( @(t,R_ODE45) TwoBP(t,R_ODE45,mu) , t , init, options) ;
 
-R_FG = FGProp(t,R_ECI,V_ECI,e,a,p,mu) ;
+[R_FG, V_FG] = FGProp(t,R_ECI,V_ECI,e,a,p,mu) ;
 
 
 r1 = zeros(length(t),3) ;
+v1 = zeros(length(t),3) ;
 for idx = 1:3
         r1(:,idx) = R_ODE45(:,idx) ;
+        v1(:,idx) = R_ODE45(:,idx+3) ;
 end
+
 omega = 360/24/3600 ;
 
 R_ODE45_ECEF = ECI2ECEF(r1, omega, t, GMST) ;
 R_FG_ECEF = ECI2ECEF(R_FG, omega, t, GMST) ;
 
+R_Error = abs(R_FG - r1);
+V_Error = abs(V_FG - v1) ;
 
 grdTrck_ODE45 = groundTrack(t,R_ODE45,GMST) ;
 grdTrck_FG = groundTrack(t,R_FG,GMST) ;
@@ -120,7 +125,6 @@ xlabel('Longitude [deg]')
 ylabel('Latitude [deg]')
 set(gca,'FontSize',18)
 exportgraphics(f,['long vs lat' '.jpg'])
-
 
 
 

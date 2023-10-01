@@ -63,7 +63,7 @@ t = linspace(1,totalT,10000) ;
 options = odeset('reltol',1e-12,'abstol',1e-12);
 [t,R_ODE45] = ode45( @(t,R_ODE45) TwoBP(t,R_ODE45,mu) , t , init, options) ;
 
-R_FG = FGProp(t,R_ECI,V_ECI,e,a,p,mu) ;
+[R_FG, V_FG] = FGProp(t,R_ECI,V_ECI,e,a,p,mu) ;
 
 
 r1 = zeros(length(t),3) ;
@@ -80,28 +80,48 @@ grdTrck_ODE45 = groundTrack(t,R_ODE45,GMST) ;
 grdTrck_FG = groundTrack(t,R_FG,GMST) ;
 
 f = figure ;
-plot3(R_FG_ECEF,)
-
+subplot(1,1,1)
+plot3(R_ODE45_ECEF(:,1), R_ODE45_ECEF(:,2), R_ODE45_ECEF(:,3), 'r', R_FG_ECEF(:,1), R_FG_ECEF(:,2), R_FG_ECEF(:,3), 'b')
+xlabel('X (KM)')
+ylabel('Y (KM)')
+zlabel('Z (KM)')
+exportgraphics(f,['3D' '.jpg'])
 
 f = figure ;
 subplot(1,1,1)
 plot(R_ODE45_ECEF(:,1), R_ODE45_ECEF(:,2), 'r', R_FG_ECEF(:,1), R_FG_ECEF(:,2), 'b')
+xlabel('X (KM)')
+ylabel('Y (KM)')
 exportgraphics(f,['X vs Y' '.jpg'])
 f = figure ;
 subplot(1,1,1)
 plot(R_ODE45_ECEF(:,2), R_ODE45_ECEF(:,3), 'r', R_FG_ECEF(:,2), R_FG_ECEF(:,3), 'b')
+xlabel('Y (KM)')
+ylabel('Z (KM)')
 exportgraphics(f,['Y vs Z' '.jpg'])
+
 f = figure ;
 subplot(1,1,1)
 plot(R_ODE45_ECEF(:,1), R_ODE45_ECEF(:,3), 'r', R_FG_ECEF(:,1), R_FG_ECEF(:,3), 'b')
+xlabel('X (KM)')
+ylabel('Z (KM)')
 exportgraphics(f,['X vs Z' '.jpg'])
 
 f = figure ;
-subplot(1,1,1)
-plot( grdTrck_ODE45(:,1), grdTrck_ODE45(:,2),'b', grdTrck_FG(:,1), grdTrck_FG(:,2), 'g', longitude, latitude,'X')
+load('topo.mat','topo');
+topoplot = [topo(:,181:360),topo(:,1:180)];
+contour(-180:179,-90:89,topoplot,[0,0],'black','linewidth',1);
+grid on
+grid minor
+axis equal
+hold on
+plot( grdTrck_ODE45(:,1), grdTrck_ODE45(:,2),'b', grdTrck_FG(:,1), grdTrck_FG(:,2), 'g', longitude, latitude,'X')% <- ENTER THE LONGITUDE AND LATITUDE YOU HAVE COMPUTED HERE
+xlabel('Longitude [deg]')
+ylabel('Latitude [deg]')
+set(gca,'FontSize',18)
 exportgraphics(f,['long vs lat' '.jpg'])
 
-
+R_Error = aR_FG- 
 
 
 
@@ -152,7 +172,6 @@ function gt = groundTrack(t,r,GMST)
     end
 
     e_omega = 360/24/3600 ;
-    %e_omega = 0 ;
 
     r_ecef = ECI2ECEF(r1,e_omega,t,GMST) ;
     
