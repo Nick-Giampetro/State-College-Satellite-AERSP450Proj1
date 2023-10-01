@@ -61,62 +61,119 @@ init = [ R_ECI(1) R_ECI(2) R_ECI(3) V_ECI(1) V_ECI(2) V_ECI(3)] ;
 totalT = T*24 ;
 t = linspace(1,totalT,10000) ;
 options = odeset('reltol',1e-12,'abstol',1e-12);
-
 [t,R_ODE45] = ode45( @(t,R_ODE45) TwoBP(t,R_ODE45,mu) , t , init, options) ;
 
-grdTrck = groundTrack(t,R_ODE45,GMST) ;
+R_FG = FGProp(t,R_ECI,V_ECI,e,a,p,mu) ;
+
+
+r1 = zeros(length(t),3) ;
+for idx = 1:3
+        r1(:,idx) = R_ODE45(:,idx) ;
+end
+omega = 360/24/3600 ;
+
+R_ODE45_ECEF = ECI2ECEF(r1, omega, t, GMST) ;
+R_FG_ECEF = ECI2ECEF(R_FG, omega, t, GMST) ;
+
+
+grdTrck_ODE45 = groundTrack(t,R_ODE45,GMST) ;
+grdTrck_FG = groundTrack(t,R_FG,GMST) ;
 
 f = figure ;
 subplot(1,1,1)
-plot(R_ODE45(:,1),R_ODE45(:,2),'r')
+plot3(R_ODE45_ECEF(:,1), R_ODE45_ECEF(:,2), R_ODE45_ECEF(:,3), 'r', R_FG_ECEF(:,1), R_FG_ECEF(:,2), R_FG_ECEF(:,3), 'b')
+xlabel('X (KM)')
+ylabel('Y (KM)')
+zlabel('Z (KM)')
+exportgraphics(f,['3D' '.jpg'])
+
+f = figure ;
+subplot(1,1,1)
+plot(R_ODE45_ECEF(:,1), R_ODE45_ECEF(:,2), 'r', R_FG_ECEF(:,1), R_FG_ECEF(:,2), 'b')
+xlabel('X (KM)')
+ylabel('Y (KM)')
 exportgraphics(f,['X vs Y' '.jpg'])
 f = figure ;
 subplot(1,1,1)
-plot(R_ODE45(:,2),R_ODE45(:,3),'g')
+plot(R_ODE45_ECEF(:,2), R_ODE45_ECEF(:,3), 'r', R_FG_ECEF(:,2), R_FG_ECEF(:,3), 'b')
+xlabel('Y (KM)')
+ylabel('Z (KM)')
 exportgraphics(f,['Y vs Z' '.jpg'])
+
 f = figure ;
 subplot(1,1,1)
-plot(R_ODE45(:,1),R_ODE45(:,3),'b')
+plot(R_ODE45_ECEF(:,1), R_ODE45_ECEF(:,3), 'r', R_FG_ECEF(:,1), R_FG_ECEF(:,3), 'b')
+xlabel('X (KM)')
+ylabel('Z (KM)')
 exportgraphics(f,['X vs Z' '.jpg'])
 
 f = figure ;
-subplot(1,1,1)
-plot(grdTrck(:,1),grdTrck(:,2),'b',longitude,latitude,'X')
+load('topo.mat','topo');
+topoplot = [topo(:,181:360),topo(:,1:180)];
+contour(-180:179,-90:89,topoplot,[0,0],'black','linewidth',1);
+grid on
+grid minor
+axis equal
+hold on
+plot( grdTrck_ODE45(:,1), grdTrck_ODE45(:,2),'b', grdTrck_FG(:,1), grdTrck_FG(:,2), 'g', longitude, latitude,'X')% <- ENTER THE LONGITUDE AND LATITUDE YOU HAVE COMPUTED HERE
+xlabel('Longitude [deg]')
+ylabel('Latitude [deg]')
+set(gca,'FontSize',18)
 exportgraphics(f,['long vs lat' '.jpg'])
 
 
-function dx = TwoBP(~,r,mu)
-    x = r(1) ;
-    y = r(2) ;
-    z = r(3) ;
-    xdot = r(4) ;
-    ydot = r(5) ;
-    zdot = r(6) ;
 
-    R = sqrt(x^2 + y^2 + z^2) ;
 
-    xdoubledot = -mu/R^3 * x ;
-    ydoubledot = -mu/R^3 * y ;
-    zdoubledot = -mu/R^3 * z ;
 
-    dx = [ xdot ; ydot ; zdot ; xdoubledot ; ydoubledot ; zdoubledot ] ;
+function [r,v] = FGProp(t,r0,v0,e,a,p,mu)
+    
+    r = zeros(length(t),3) ;
+    v = zeros(length(t),3) ;
+    
+    r(1,:) = r0 ;
+    r(2,:) = v0 ;
+
+    E0 = NewtonMethod(a,e,mu,t(1),0,0.000001) ;
+    
+    for idx = 2:length(t) 
+        E = NewtonMethod(a,e,mu,t(idx),0,0.0000001) ;
+    
+        dE = E - E0 ;
+
+        [r(idx,:),v(idx,:)] = FGFunc(r0,v0,dE,t(idx),e,p,a,mu) ;
+
+    end
 end
+
+
+
+function  [r,v] = FGFunc(r0,v0,dE,dt,e,p,a,mu)
+R0 = norm(r0) ;
+
+theta0 = acos((1/e)*(p/R0-1)) ;
+R = p/(1+e*cos(theta0+dE)) ;
+
+f = 1 - a/R0 * (1 - cos(dE)) ;
+g = dt - sqrt(a^3/mu) * (dE-sin(dE)) ;
+fdot = (-1*sqrt(mu*a)*sin(dE)) / (R*R0) ;
+gdot = 1 - a/R *(1-cos(dE)) ;
+
+r = f*r0 + g*v0 ;
+v = fdot*r0 + gdot*v0 ;
+end
+
 
 
 function gt = groundTrack(t,r,GMST)
     r1 = zeros(length(t),3) ;
-    v1 = zeros(length(t),3) ;
 
-    
     for idx = 1:3
         r1(:,idx) = r(:,idx) ;
-        v1(:,idx) = r(:,idx+3) ;
     end
 
     e_omega = 360/24/3600 ;
-    %e_omega = 0 ;
 
-    [r_ecef,~] = ECI2ECEF(r1,v1,e_omega,t,GMST) ;
+    r_ecef = ECI2ECEF(r1,e_omega,t,GMST) ;
     
     gt = zeros(length(t),2) ;
     phase = 0 ;
@@ -143,35 +200,41 @@ function gt = groundTrack(t,r,GMST)
            phase = phase + 1 ; 
            gt(idx,1) = atand(r_ecef(idx,2)/r_ecef(idx,1)) ;
         end
-        
-
     end
 end
 
-function [r_ecef,v_ecef] = ECI2ECEF(r_eci, v_eci, omega, t, GMST)
+
+
+function dx = TwoBP(~,r,mu)
+    x = r(1) ;
+    y = r(2) ;
+    z = r(3) ;
+    xdot = r(4) ;
+    ydot = r(5) ;
+    zdot = r(6) ;
+
+    R = sqrt(x^2 + y^2 + z^2) ;
+
+    xdoubledot = -mu/R^3 * x ;
+    ydoubledot = -mu/R^3 * y ;
+    zdoubledot = -mu/R^3 * z ;
+
+    dx = [ xdot ; ydot ; zdot ; xdoubledot ; ydoubledot ; zdoubledot ] ;
+end
+
+
+
+function r_ecef = ECI2ECEF(r_eci, omega, t, GMST)
     r_ecef = zeros(length(t),3) ;
-    v_ecef = zeros(length(t),3) ;
 
     for idx = 1 : length(t)
         gamma = GMST + t(idx) * omega ;
         cECEF = dcm3axis(gamma) ;
         r_ecef(idx,:) = cECEF' * r_eci(idx,:)' ;
-        v_ecef(idx,:) = cECEF' * v_eci(idx,:)' ;
     end
 end
 
 
-
-
-% creates a dcm for an angle about axis 1
-function r = dcm1axis(ang)
-r = [1 0 0 ; 0 cosd(ang) sind(ang) ; 0 -sind(ang) cosd(ang)];
-end
-
-% creates a dcm for an angle about axis 3
-function r = dcm3axis(ang)
-r = [cosd(ang) sind(ang) 0 ; -sind(ang) cosd(ang) 0 ; 0 0 1];
-end
 
 function an = NewtonMethod(a,e,mu,t,tp,delta)
 
@@ -187,4 +250,15 @@ end
 
 an = En;
 
+end
+
+
+% creates a dcm for an angle about axis 1
+function r = dcm1axis(ang)
+r = [1 0 0 ; 0 cosd(ang) sind(ang) ; 0 -sind(ang) cosd(ang)];
+end
+
+% creates a dcm for an angle about axis 3
+function r = dcm3axis(ang)
+r = [cosd(ang) sind(ang) 0 ; -sind(ang) cosd(ang) 0 ; 0 0 1];
 end
