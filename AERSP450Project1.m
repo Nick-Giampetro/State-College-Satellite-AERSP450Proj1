@@ -28,13 +28,14 @@ p = a*(1-e^2) ;                  % finding  semi-latus rectum from semi-major ax
 
 rp = p/(1+e*cos(thetaPeriapsis)) ;                  % radius of periapsis for designated conditions
 
+% calculation to get R peripasis in ECEF
 C1 = tand(longitude) ;
 C2 = tand(latitude)*sqrt(1+C1^2) ;
-
 R_ECEF(1) = rp/sqrt(1+C1^2+C2^2) ;
 R_ECEF(2) = R_ECEF(1)*tand(longitude)  ;
 R_ECEF(3) = tand(latitude)*sqrt((R_ECEF(1)^2+R_ECEF(2)^2)) 
 
+% Perifocal coordinate calculations
 V_Perifocal(1) = sqrt(mu/p)*-sind(thetaPeriapsis) ;
 V_Perifocal(2) = sqrt(mu/p)*(e+cosd(thetaPeriapsis)) ;
 V_Perifocal(3) = 0 ;
@@ -43,47 +44,55 @@ R_Perifocal(1) = rp*cosd(thetaPeriapsis) ;
 R_Perifocal(2) = rp*sind(thetaPeriapsis) ;
 R_Perifocal(3) = 0 ;
 
+% argument of assending node calculation
 w = asind(R_ECEF(3)/(R_Perifocal(1)*sind(I)))
 
+% GMST calculation
 C1 = cosd(lonAN)/R_ECEF(2) + sind(lonAN)/R_ECEF(1) ;
 C2 = tand(lonAN)*cosd(lonAN)/R_ECEF(2) - sind(lonAN)/(R_ECEF(1)*tand(lonAN)) ;
 C3 = R_ECEF(1)/R_ECEF(2) + R_ECEF(2)/R_ECEF(1) ;
-
 GMST = acosd((R_Perifocal(1) * (cosd(w)*C1 - cosd(I)*sind(w)*C2))/C3) 
 
-
+% ECI vector transformation
 cEP = dcm3axis(w)*dcm1axis(I)*dcm3axis(lonAN) ;
 cPE = cEP';
 R_ECI = cPE * R_Perifocal' ;
 V_ECI = cPE * V_Perifocal' ;
 
+% ODE45 and FG orbit propagation
 init = [ R_ECI(1) R_ECI(2) R_ECI(3) V_ECI(1) V_ECI(2) V_ECI(3)] ;
 totalT = T*24 ;
 t = linspace(1,totalT,25000) ;
 options = odeset('reltol',1e-12,'abstol',1e-12);
 [t,R_ODE45] = ode45( @(t,R_ODE45) TwoBP(t,R_ODE45,mu) , t , init, options) ;
-
 [R_FG, V_FG] = FGProp(t,R_ECI,V_ECI,e,a,p,mu) ;
 
-
+% error calculations
 r1 = zeros(length(t),3) ;
 v1 = zeros(length(t),3) ;
 for idx = 1:3
         r1(:,idx) = R_ODE45(:,idx) ;
         v1(:,idx) = R_ODE45(:,idx+3) ;
 end
-
-omega = 360/24/3600 ;
-
-R_ODE45_ECEF = ECI2ECEF(r1, omega, t, GMST) ;
-R_FG_ECEF = ECI2ECEF(R_FG, omega, t, GMST) ;
-
 R_Error = abs(R_FG - r1);
 V_Error = abs(V_FG - v1) ;
 
+% ECEF coordinate transformation
+omega = 360/24/3600 ;
+R_ODE45_ECEF = ECI2ECEF(r1, omega, t, GMST) ;
+R_FG_ECEF = ECI2ECEF(R_FG, omega, t, GMST) ;
+
+% ground track plotting
 grdTrck_ODE45 = groundTrack(t,R_ODE45,GMST) ;
 grdTrck_FG = groundTrack(t,R_FG,GMST) ;
 
+% finding orbital elements at each time
+orbital_elements = zeros(length(t),6) ;
+for idx = 1:length(t)    
+    [orbital_elements(idx,1), orbital_elements(idx,2), orbital_elements(idx,3), orbital_elements(idx,4), orbital_elements(idx,5), orbital_elements(idx,6)] = RV2OE(r1(idx,:),v1(idx,:),mu) ;
+end
+
+% graphs
 f = figure ;
 subplot(1,1,1)
 plot3(R_ODE45_ECEF(:,1), R_ODE45_ECEF(:,2), R_ODE45_ECEF(:,3), 'r', R_FG_ECEF(:,1), R_FG_ECEF(:,2), R_FG_ECEF(:,3), 'b')
@@ -128,7 +137,7 @@ exportgraphics(f,['long vs lat' '.jpg'])
 
 
 
-
+% propogates F and G functions to plot orbit
 function [r,v] = FGProp(t,r0,v0,e,a,p,mu)
     
     r = zeros(length(t),3) ;
@@ -150,7 +159,7 @@ function [r,v] = FGProp(t,r0,v0,e,a,p,mu)
 end
 
 
-
+% calculates r and v vectors from F and G functions
 function  [r,v] = FGFunc(r0,v0,dE,dt,e,p,a,mu)
 R0 = norm(r0) ;
 
@@ -167,7 +176,7 @@ v = fdot*r0 + gdot*v0 ;
 end
 
 
-
+% calculates ground track plot
 function gt = groundTrack(t,r,GMST)
     r1 = zeros(length(t),3) ;
 
@@ -208,7 +217,7 @@ function gt = groundTrack(t,r,GMST)
 end
 
 
-
+% Two body problem function
 function dx = TwoBP(~,r,mu)
     x = r(1) ;
     y = r(2) ;
@@ -227,7 +236,7 @@ function dx = TwoBP(~,r,mu)
 end
 
 
-
+% ECI to ECEF translation
 function r_ecef = ECI2ECEF(r_eci, omega, t, GMST)
     r_ecef = zeros(length(t),3) ;
 
@@ -239,7 +248,7 @@ function r_ecef = ECI2ECEF(r_eci, omega, t, GMST)
 end
 
 
-
+% Newton Raphson method
 function an = NewtonMethod(a,e,mu,t,tp,delta)
 
 M = sqrt(mu/(a^3))*(t-tp) ;
@@ -256,6 +265,56 @@ an = En;
 
 end
 
+
+% gets orbital elemets from an R and V value
+function [a,e,I,RAAN,AOP,f] = RV2OE(r,v,mu)
+        
+    % declaring gravitational constant of earth and time provided and ECI
+    ECI = [[1 0 0];[0 1 0];[0 0 1]];
+    
+    R1 = norm(r);
+    V1 = norm(v);
+
+    energy = (V1^2)/2-mu/R1;
+    
+    h = cross(r,v);
+    H = norm(h);
+    
+    p = H^2/mu;
+    
+    % calculating semi major axis
+    a = -mu/(2*energy);
+    
+    % calculating eccentricity 
+    eV = cross(v,h)/mu - (r/R1);
+    e = norm(eV);
+    
+    % calculating orbital inclination
+    I = acos(dot(ECI(3,:),h)/H);
+    
+    % calculating longitude of the ascending node
+    n = cross(ECI(3,:),h)/norm(cross(ECI(3,:),h));
+    
+    if(dot(n,ECI(1,:)) >= 0)
+        RAAN = atan(dot(n,ECI(2,:))/dot(n,ECI(1,:)));
+    elseif (dot(n,ECI(1,:)) < 0)
+        RAAN = atan(dot(n,ECI(2,:))/dot(n,ECI(1,:)))+pi;
+    end
+    
+    % calculating argument of periapsis
+    if(dot(eV,ECI(:,3)) >= 0)
+        AOP = acos(dot(eV,n)/e);
+    elseif (dot(eV,ECI(:,3)) < 0)
+        AOP = -acos(dot(eV,n)/e);
+    end
+
+    if(dot(r,eV) >= 0)
+        f = acosd(dot(eV,r)/(e*R1)) ;
+    elseif(dot(r,eV) < 0)
+        f = 360 - acosd(dot(eV,r)/(e*R1)) ;
+    end
+
+end
 
 % creates a dcm for an angle about axis 1
 function r = dcm1axis(ang)
