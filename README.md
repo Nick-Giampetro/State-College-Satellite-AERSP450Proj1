@@ -1,1 +1,0 @@
-# State-College-Satellite-AERSP450Proj1

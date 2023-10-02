@@ -28,41 +28,57 @@ p = a*(1-e^2) ;                  % finding  semi-latus rectum from semi-major ax
 
 rp = p/(1+e*cos(thetaPeriapsis)) ;                  % radius of periapsis for designated conditions
 
+% calculation of constants needed to find ECEF position vector
 C1 = tand(longitude) ;
 C2 = tand(latitude)*sqrt(1+C1^2) ;
 
+% calculation of position vector for question 3 of analytical part using C1
+% and C2 from above along with latitude and longitude of State College
 R_ECEF(1) = rp/sqrt(1+C1^2+C2^2) ;
 R_ECEF(2) = R_ECEF(1)*tand(longitude)  ;
-R_ECEF(3) = tand(latitude)*sqrt((R_ECEF(1)^2+R_ECEF(2)^2)) 
+R_ECEF(3) = tand(latitude)*sqrt((R_ECEF(1)^2+R_ECEF(2)^2))  
 
 V_Perifocal(1) = sqrt(mu/p)*-sind(thetaPeriapsis) ;
 V_Perifocal(2) = sqrt(mu/p)*(e+cosd(thetaPeriapsis)) ;
-V_Perifocal(3) = 0 ;
+V_Perifocal(3) = 0 ;  
  
+% calculation of position vector in orbital frame needed for question 4b of
+% analytical part
 R_Perifocal(1) = rp*cosd(thetaPeriapsis) ;
 R_Perifocal(2) = rp*sind(thetaPeriapsis) ;
-R_Perifocal(3) = 0 ;
+R_Perifocal(3) = 0 ;    
 
+% calculation of argument of periapsis needed to find GMST using sinw
+% expression found in part 4c of analytical part of project
 w = asind(R_ECEF(3)/(R_Perifocal(1)*sind(I)))
 
+% constants that can be used in GMST calculation in order to prevent
+% complexity and potential syntax mistakes in GMST calculation
 C1 = cosd(lonAN)/R_ECEF(2) + sind(lonAN)/R_ECEF(1) ;
 C2 = tand(lonAN)*cosd(lonAN)/R_ECEF(2) - sind(lonAN)/(R_ECEF(1)*tand(lonAN)) ;
 C3 = R_ECEF(1)/R_ECEF(2) + R_ECEF(2)/R_ECEF(1) ;
 
+% GMST calculation needed for question 4d of analytical part of project
 GMST = acosd((R_Perifocal(1) * (cosd(w)*C1 - cosd(I)*sind(w)*C2))/C3) 
 
-
+% calculation of rotational matrix needed to find inertial vectors and the
+% calculations of the inertial position and velocity vectors needed for
+% questions 4f and 5 of analytical part
 cEP = dcm3axis(w)*dcm1axis(I)*dcm3axis(lonAN) ;
 cPE = cEP';
 R_ECI = cPE * R_Perifocal' ;
 V_ECI = cPE * V_Perifocal' ;
 
+% application of ODE45 for propogating orbit for question one of numerical
+% part of project
 init = [ R_ECI(1) R_ECI(2) R_ECI(3) V_ECI(1) V_ECI(2) V_ECI(3)] ;
 totalT = T*24 ;
 t = linspace(1,totalT,25000) ;
 options = odeset('reltol',1e-12,'abstol',1e-12);
 [t,R_ODE45] = ode45( @(t,R_ODE45) TwoBP(t,R_ODE45,mu) , t , init, options) ;
 
+% application of FG propgation function needed for question 4 of numerical
+% part of project
 [R_FG, V_FG] = FGProp(t,R_ECI,V_ECI,e,a,p,mu) ;
 
 
@@ -73,17 +89,23 @@ for idx = 1:3
         v1(:,idx) = R_ODE45(:,idx+3) ;
 end
 
+% anular velocity of the earth calculation
 omega = 360/24/3600 ;
 
 R_ODE45_ECEF = ECI2ECEF(r1, omega, t, GMST) ;
 R_FG_ECEF = ECI2ECEF(R_FG, omega, t, GMST) ;
 
+% calculation of errors between two methods needed for question 5 of
+% numerical part of project
 R_Error = abs(R_FG - r1);
 V_Error = abs(V_FG - v1) ;
 
+% application of groundtrack function created to answer question 3 of the
+% numerical part of project
 grdTrck_ODE45 = groundTrack(t,R_ODE45,GMST) ;
 grdTrck_FG = groundTrack(t,R_FG,GMST) ;
 
+% 3D plot of ecef framed orbit needed for question 2a of numerical part
 f = figure ;
 subplot(1,1,1)
 plot3(R_ODE45_ECEF(:,1), R_ODE45_ECEF(:,2), R_ODE45_ECEF(:,3), 'r', R_FG_ECEF(:,1), R_FG_ECEF(:,2), R_FG_ECEF(:,3), 'b')
@@ -92,6 +114,7 @@ ylabel('Y (KM)')
 zlabel('Z (KM)')
 exportgraphics(f,['3D' '.jpg'])
 
+% figures for questions 2b, 2c, and 2d of numerical part
 f = figure ;
 subplot(1,1,1)
 plot(R_ODE45_ECEF(:,1), R_ODE45_ECEF(:,2), 'r', R_FG_ECEF(:,1), R_FG_ECEF(:,2), 'b')
@@ -112,6 +135,8 @@ xlabel('X (KM)')
 ylabel('Z (KM)')
 exportgraphics(f,['X vs Z' '.jpg'])
 
+% imported coastlines of earth for groundtrack plot and plotted
+% groundtracks needed for question 3 of numerical part of project
 f = figure ;
 load('topo.mat','topo');
 topoplot = [topo(:,181:360),topo(:,1:180)];
@@ -128,7 +153,7 @@ exportgraphics(f,['long vs lat' '.jpg'])
 
 
 
-
+% function for F and G function propagation 
 function [r,v] = FGProp(t,r0,v0,e,a,p,mu)
     
     r = zeros(length(t),3) ;
@@ -167,7 +192,7 @@ v = fdot*r0 + gdot*v0 ;
 end
 
 
-
+% function to calulate ground tracks of satellite
 function gt = groundTrack(t,r,GMST)
     r1 = zeros(length(t),3) ;
 
@@ -208,7 +233,7 @@ function gt = groundTrack(t,r,GMST)
 end
 
 
-
+% function to code eqns of motion for two body program so ode45 can be used
 function dx = TwoBP(~,r,mu)
     x = r(1) ;
     y = r(2) ;
@@ -227,7 +252,7 @@ function dx = TwoBP(~,r,mu)
 end
 
 
-
+% function to calculate eci vectors from ecef framed vectors
 function r_ecef = ECI2ECEF(r_eci, omega, t, GMST)
     r_ecef = zeros(length(t),3) ;
 
@@ -239,7 +264,7 @@ function r_ecef = ECI2ECEF(r_eci, omega, t, GMST)
 end
 
 
-
+% function to perform the NewtonRaphson iteration for F&G propagation
 function an = NewtonMethod(a,e,mu,t,tp,delta)
 
 M = sqrt(mu/(a^3))*(t-tp) ;
